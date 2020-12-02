@@ -1,0 +1,117 @@
+*&---------------------------------------------------------------------*
+*& Report zdemo_alv01
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zdemo_alv01.
+DATA alv TYPE REF TO cl_salv_table.
+DATA flight_schedule TYPE STANDARD TABLE OF spfli.
+DATA columns TYPE REF TO cl_salv_columns_table.
+DATA column TYPE REF TO cl_salv_column.
+
+START-OF-SELECTION.
+  PERFORM get_flight_schedule.
+  PERFORM initialize_alv.
+  PERFORM display_alv.
+
+FORM get_flight_schedule.
+  SELECT * FROM spfli INTO TABLE flight_schedule UP TO 100 ROWS.
+ENDFORM.
+
+FORM initialize_alv.
+  DATA message TYPE REF TO cx_salv_msg.
+  TRY.
+      cl_salv_table=>factory(
+          IMPORTING
+           r_salv_table = alv
+          CHANGING
+           t_table = flight_schedule
+      ).
+    columns = alv->get_columns(  ).
+    PERFORM enable_layout_settings.
+    PERFORM optimize_column_width.
+    PERFORM hide_client_column.
+    PERFORM set_departure_country_column.
+    PERFORM set_toolbar.
+    PERFORM display_settings.
+    PERFORM set_aggregations.
+
+    CATCH cx_salv_msg INTO message.
+  ENDTRY.
+ENDFORM.
+
+FORM display_alv.
+  alv->display(  ).
+ENDFORM.
+
+FORM enable_layout_settings.
+    DATA layout_settings TYPE REF TO cl_salv_layout.
+    DATA layout_key TYPE salv_s_layout_key.
+
+    layout_settings = alv->get_layout(  ).
+    layout_key-report = sy-repid.
+    layout_settings->set_key( layout_key ).
+    layout_settings->set_save_restriction( if_salv_c_layout=>restrict_none ).
+
+
+
+ENDFORM.
+
+FORM optimize_column_width.
+    DATA columns TYPE REF TO cl_salv_columns_table.
+    columns = alv->get_columns(  ).
+    columns->set_optimize(  ).
+
+ENDFORM.
+
+FORM hide_client_column.
+    DATA not_found TYPE REF TO cx_salv_not_found.
+    TRY.
+        column = columns->get_column( 'MANDT' ).
+        column->set_visible( if_salv_c_bool_sap=>false ).
+       CATCH cx_salv_not_found INTO not_found.
+     ENDTRY.
+ENDFORM.
+
+FORM set_departure_country_column.
+    DATA not_found TYPE REF TO cx_salv_not_found.
+    TRY.
+        column = columns->get_column( 'COUNTRYFR' ).
+        column->set_short_text( 'D. Country' ).
+        column->set_medium_text( 'Dep.Country' ).
+        column->set_long_text( 'Departure Country' ).
+
+      CATCH cx_salv_not_found INTO not_found.
+
+    ENDTRY.
+ ENDFORM.
+
+ FORM set_toolbar.
+    DATA functions TYPE REF TO cl_salv_functions_list.
+    functions = alv->get_functions(  ).
+    functions->set_all(  ).
+ ENDFORM.
+
+ FORM display_settings.
+    DATA display_settings TYPE REF TO cl_salv_display_settings.
+
+    display_settings = alv->get_display_settings(  ).
+    display_settings->set_striped_pattern( if_salv_c_bool_sap=>true ).
+    display_settings->set_list_header( 'Flight Schedule' ).
+
+ ENDFORM.
+
+ FORM set_aggregations.
+    DATA aggregations TYPE REF TO cl_salv_aggregations.
+    aggregations = alv->get_aggregations(  ).
+    TRY.
+        aggregations->add_aggregation(
+         columnname = 'FLTIME'
+         aggregation = if_salv_c_aggregation=>maximum
+          ).
+    CATCH cx_salv_data_error.
+    CATCH cx_salv_not_found.
+    CATCH cx_salv_existing.
+    ENDTRY.
+    aggregations->set_aggregation_before_items(  ).
+ ENDFORM.
