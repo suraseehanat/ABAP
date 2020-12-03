@@ -1,0 +1,28 @@
+*&---------------------------------------------------------------------*
+*& Report zdemo_popup
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zdemo_popup.
+DATA : o_popup_alv TYPE REF TO cl_salv_table.
+DATA : lo_functions TYPE REF TO cl_salv_functions_list.
+DATA : t_t100 TYPE STANDARD TABLE OF t100.
+       SELECT * FROM t100 INTO TABLE t_t100 UP TO 10 ROWS.
+
+ cl_salv_table=>factory(
+    IMPORTING
+        r_salv_table = o_popup_alv
+    CHANGING
+        t_table = t_t100
+ ).
+ lo_functions = o_popup_alv->get_functions( ).
+ lo_functions->set_default('X').
+
+ o_popup_alv->set_screen_popup(
+    start_column = 80
+    end_column = 140
+    start_line = 3
+    end_line = 10
+ ).
+
+ o_popup_alv->display(  ).
